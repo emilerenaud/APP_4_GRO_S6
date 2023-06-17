@@ -80,14 +80,23 @@ def dhs2T( r , d , theta, alpha ):
     ###################
     # Votre code ici
     ###################
+    aTb = dh2T(r[0],d[0],theta[0],alpha[0])
+    bTc = dh2T(r[1],d[1],theta[1],alpha[1])
+    cTd = dh2T(r[2],d[2],theta[2],alpha[2])
+    dTe = dh2T(r[3],d[3],theta[3],alpha[3])
+    eTf = dh2T(r[4],d[4],theta[4],alpha[4])
 
-    T = np.zeros((4,4))
-    for i in range(len(r)):
-        T = dh2T(r[i],d[i],theta[i],alpha[i])
-        if(i==0): # first time copy T in WTT
-            WTT = T
-        else:
-            WTT = WTT @ T
+    WTT = aTb @ bTc @ cTd @ dTe @ eTf
+    # WTT = np.dot(np.dot(np.dot(np.dot(aTb,bTc),cTd),dTe),eTf)
+
+
+    # T = np.zeros((4,4))
+    # for i in range(len(r)):
+    #     T = dh2T(r[i],d[i],theta[i],alpha[i])
+    #     if(i==0): # first time copy T in WTT
+    #         WTT = T
+    #     else:
+    #         WTT = WTT @ T
     
     return WTT
 
@@ -112,16 +121,18 @@ def f(q):
     ###################
     # Votre code ici
     ###################
+
     # Robot parameters DH table
-    d = np.array([0.147,0,0,0,0.2175])
-    theta = np.array([q[0],q[1]-np.pi/2,q[2],q[3],q[4]+np.pi/2])
-    r = np.array([0.033,0.155,0.135,0,0])
-    # r = np.array([33,0.155,135,0,0])
-    alpha = np.array([np.pi/2,0,0,np.pi/2,0])
+    d = [0.147,0,0,0,0.2175]
+    theta = [q[0],q[1]-(np.pi/2),q[2],q[3]+(np.pi/2),q[4]]
+    # theta = [q[0],q[1]+(np.pi/2),q[2],q[3]-(np.pi/2),q[4]]
+    # theta = [q[0],q[1],q[2],q[3]+(np.pi/2),q[4]]
+    r = [0.033,0.155,0.135,0,0]
+    alpha = [-np.pi/2,0,0,np.pi/2,0]
 
     # Transformation matrices
     WTT = dhs2T(r,d,theta,alpha)
-    # print(WTT)
+    print(WTT)
     r = WTT[0:3,3]
     return r
 
@@ -359,7 +370,7 @@ def q2torque( q, dq, ddq , manipulator ):
 # main 
 if __name__ == "__main__":
     # test function dh2T
-    # T = dh2T( 1 , 2 , 3 , 4 )
+    # T = dh2T( 1 , 1 , 1 , 1 )
     # print( T )
 
     # test function dhs2T
