@@ -179,6 +179,8 @@ class CustomPositionController( EndEffectorKinematicController ) :
         ##################################
         # Votre loi de commande ici !!!
         ##################################
+        
+        # eq 8.23
         gain = 0.2
         dq = np.linalg.inv( J.T @ J + gain**2 * np.identity(self.m)) @ np.dot(J.T, e)
         # if(dq.all() == 0):
