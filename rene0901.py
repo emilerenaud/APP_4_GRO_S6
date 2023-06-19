@@ -180,11 +180,9 @@ class CustomPositionController( EndEffectorKinematicController ) :
         # Votre loi de commande ici !!!
         ##################################
 
-        # eq 8.23
+        # eq 8.23 Solution des moindres carrés
         gain = 0.2
         dq = np.linalg.inv( J.T @ J + gain**2 * np.identity(self.m)) @ np.dot(J.T, e)
-        # if(dq.all() == 0):
-        #     print('Warning: dq_r = 0')
         
         return dq
     
@@ -210,7 +208,8 @@ class CustomDrillingController( robotcontrollers.RobotController ) :
         
         # Label
         self.name = 'Custom Drilling Controller'
-        
+        self.position = False
+        self.drill = False        
         
     #############################
     def c( self , y , r , t = 0 ):
@@ -238,9 +237,9 @@ class CustomDrillingController( robotcontrollers.RobotController ) :
         r = self.robot_model.forward_kinematic_effector( q ) # End-effector actual position
         J = self.robot_model.J( q )      # Jacobian matrix
         g = self.robot_model.g( q )      # Gravity vector
-        H = self.robot_model.H( q )      # Inertia matrix
-        C = self.robot_model.C( q , dq ) # Coriolis matrix
-        d = self.robot_model.d( q , dq ) # Friction vector
+        # H = self.robot_model.H( q )      # Inertia matrix
+        # C = self.robot_model.C( q , dq ) # Coriolis matrix
+        # d = self.robot_model.d( q , dq ) # Friction vector
         
             
         ##################################
@@ -248,24 +247,28 @@ class CustomDrillingController( robotcontrollers.RobotController ) :
         ##################################
         
         u = np.zeros(self.m)  # place-holder de bonne dimension
-        print(r)
+        # print(r)
         # print (u.shape)
         # First, the end-effector position is controlled to the desired position
-        Kp = np.diag([30,30,30])
-        Kd = np.diag([2,2,2])
-        r_d = [0.25,0.25,0.25]
-        q_d = [0,0,20]
+        Kp = np.diag([1000,1000,1000])
+        Kd = np.diag([50,50,50])
+        r_d = [0.25,0.25,0.4]
+        f_e = [0,0,-200]
 
-        if (np.sqrt((r_d[0]-r[0])**2 + (r_d[1]-r[1])**2) > 0.05):
-            # print('Warning: r != 0.25')
-            u = J.T @ ( Kp @ ( r_d - r ) + Kd @ ( - J @ dq ) ) + g    # End-effector impedance law
+        if (self.position == False):
+            if (np.sqrt((r_d[0]-r[0])**2 + (r_d[1]-r[1])**2) + (r_d[2]-r[2])**2 > 0.01):
+                u = J.T @ ( Kp @ ( r_d - r ) + Kd @ ( - J @ dq ) ) + g    # End-effector impedance law
+            else:
+                self.position = True
         else:
-            print('Warning: r = 0.25')
-            # u = Kp @ ( q_d - q ) + Kd @ ( - dq )                 # Joint impedance law
-            u = np.zeros(self.m)
-            
-
-        # u = J.T @ f_e
+            if (self.drill == False):
+                # drill down with force control
+                if (r[2] > 0):
+                    u = J.T @ f_e + g   
+                else:
+                    self.drill = True
+                    u = g  # stop the robot in place
+        
         return u
         
     
@@ -275,78 +278,158 @@ class CustomDrillingController( robotcontrollers.RobotController ) :
         
     
 def goal2r( r_0 , r_f , t_f ):
-    """
-    
-    Parameters
-    ----------
-    r_0 : numpy array float 3 x 1
-        effector initial position
-    r_f : numpy array float 3 x 1
-        effector final position
-    t_f : float
-        time 
 
-    Returns
-    -------
-    r   : numpy array float 3 x l
-    dr  : numpy array float 3 x l
-    ddr : numpy array float 3 x l
-
-    """
     # Time discretization
+
     l = 1000 # nb of time steps
-    
+
     # Number of DoF for the effector only
+
     m = 3
-    
+
     r = np.zeros((m,l))
+
     dr = np.zeros((m,l))
+
     ddr = np.zeros((m,l))
-    
-    #################################
-    # Votre code ici !!!
-    ##################################
-    #eq 10.15
-    
+
+   
+
+    for i in range(l):
+
+        r[:,i] = ((3/(t_f**2))*((t_f*(i/l))**2) - (2/(t_f**3))*((t_f*(i/l))**3)) * (r_f - r_0) + r_0
+
+        dr[:,i] = ((6/(t_f**2))*(t_f*(i/l)) - (6/(t_f**3))*((t_f*(i/l))**2)) * (r_f - r_0)
+
+        ddr[:,i] = ((6/(t_f**2)) - (12/(t_f**3))*(t_f*(i/l))) * (r_f - r_0)
+
     return r, dr, ddr
 
 
-def r2q( r, dr, ddr , manipulator ):
-    """
 
+
+def dJq(q, dq, l1, l2, l3):
+
+   
+
+    c1  = np.cos( q[0] )
+
+    s1  = np.sin( q[0] )
+
+    c2  = np.cos( q[1] )
+
+    s2  = np.sin( q[1] )
+
+    c3  = np.cos( q[2] )
+
+    s3  = np.sin( q[2] )
+
+    c23 = np.cos( q[2] + q[1] )
+
+    s23 = np.sin( q[2] + q[1] )
+
+    dJ = [[-c1*(l3*c23 + l2*c2)*dq[0], -c1*(l3*c23 + l2*c2)*dq[1], -l3*c23*c1*dq[2]],
+
+          [-s1*(l3*c23 + l2*c2)*dq[0], -s1*(l3*c23 + l2*c2)*dq[1], -l3*c23*s1*dq[2]],
+
+          [0, (-l3*s23 - l2*s2)*dq[1], -l3*s23*dq[2]]]
+
+
+
+
+    return dJ
+
+
+
+
+def r2q( r, dr, ddr , manipulator ):
+
+    """
     Parameters
+
     ----------
+
     r   : numpy array float 3 x l
+
     dr  : numpy array float 3 x l
+
     ddr : numpy array float 3 x l
-    
-    manipulator : pyro object 
+
+    manipulator : pyro object
 
     Returns
+
     -------
+
     q   : numpy array float 3 x l
+
     dq  : numpy array float 3 x l
+
     ddq : numpy array float 3 x l
 
     """
-    # Time discretization
-    l = r.shape[1]
-    
-    # Number of DoF
-    n = 3
-    
-    # Output dimensions
-    q = np.zeros((n,l))
-    dq = np.zeros((n,l))
-    ddq = np.zeros((n,l))
-    
-    #################################
-    # Votre code ici !!!
-    ##################################
-    #newton's method.
-    #p.61 à lire
-    return q, dq, ddq
 
+    # Time discretization
+
+    l = r.shape[1]
+
+   
+
+    # Number of DoF
+
+    n = 3
+
+    # Joint length
+
+    l1 = manipulator.l1
+
+    l2 = manipulator.l2
+
+    l3 = manipulator.l3
+
+
+    # Output dimensions
+
+    q = np.zeros((n,l))
+
+    dq = np.zeros((n,l))
+
+    ddq = np.zeros((n,l))
+
+    dJ = np.zeros((3,3))
+
+           
+
+    xr = np.sqrt(r[0,:]**2 + r[1,:]**2)
+
+
+
+
+    for i in range(l):
+
+        q[0,i] = np.arctan(r[1,i]/r[2,i])
+
+        q[2,i] = np.arccos(((xr[i]**2 + (r[2,i]-l1)**2) - (l2**2 + l3**2))/(2*l2*l3))
+
+        q[1,i] = np.arctan(r[2,i]/xr[i]) - np.arctan((l2*np.sin(q[2,i]))/(l1 + (l2*np.cos(q[2,i]))))
+
+
+
+
+    for i in range(l):        
+
+        dq[:,i] = np.linalg.inv( manipulator.J(q[:,i])) @ dr[:,i]
+
+
+
+
+    for i in range(l):
+
+        ddq[:,i] = np.linalg.inv( manipulator.J(q[:,i])) @ (ddr[:,i] - dJq(q[:,i], dq[:,i], l1, l2, l3) @ dq[:,i])
+
+
+
+    return q, dq, ddq
 
 
 def q2torque( q, dq, ddq , manipulator ):
@@ -394,4 +477,5 @@ if __name__ == "__main__":
 
     # test function f
     r = f( [0,0,0,0,0] )
-    print( r )
+    # print( r )
+    print ("X : " + str(r[0]) + "\nY : " + str(r[1]) + "\nZ : " + str(r[2]) )
