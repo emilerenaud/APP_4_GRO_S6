@@ -248,7 +248,24 @@ class CustomDrillingController( robotcontrollers.RobotController ) :
         ##################################
         
         u = np.zeros(self.m)  # place-holder de bonne dimension
-        u = J.T @ f_e
+        print(r)
+        # print (u.shape)
+        # First, the end-effector position is controlled to the desired position
+        Kp = np.diag([30,30,30])
+        Kd = np.diag([2,2,2])
+        r_d = [0.25,0.25,0.25]
+        q_d = [0,0,20]
+
+        if (np.sqrt((r_d[0]-r[0])**2 + (r_d[1]-r[1])**2) > 0.05):
+            # print('Warning: r != 0.25')
+            u = J.T @ ( Kp @ ( r_d - r ) + Kd @ ( - J @ dq ) ) + g    # End-effector impedance law
+        else:
+            print('Warning: r = 0.25')
+            # u = Kp @ ( q_d - q ) + Kd @ ( - dq )                 # Joint impedance law
+            u = np.zeros(self.m)
+            
+
+        # u = J.T @ f_e
         return u
         
     
