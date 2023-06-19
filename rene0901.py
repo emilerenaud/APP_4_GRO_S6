@@ -328,11 +328,17 @@ def dJq(q, dq, l1, l2, l3):
 
     s23 = np.sin( q[2] + q[1] )
 
-    dJ = [[-c1*(l3*c23 + l2*c2)*dq[0], -c1*(l3*c23 + l2*c2)*dq[1], -l3*c23*c1*dq[2]],
+    # dJ = [[-c1*(l3*c23 + l2*c2)*dq[0], -c1*(l3*c23 + l2*c2)*dq[1], -l3*c23*c1*dq[2]],
 
-          [-s1*(l3*c23 + l2*c2)*dq[0], -s1*(l3*c23 + l2*c2)*dq[1], -l3*c23*s1*dq[2]],
+    #       [-s1*(l3*c23 + l2*c2)*dq[0], -s1*(l3*c23 + l2*c2)*dq[1], -l3*c23*s1*dq[2]],
 
-          [0, (-l3*s23 - l2*s2)*dq[1], -l3*s23*dq[2]]]
+    #       [0, (-l3*s23 - l2*s2)*dq[1], -l3*s23*dq[2]]]
+
+    dJ = [[(-c1*(l3*c23 + l2*c2)*dq[0]) + ((-s1*(-l3*s23 - l2*s2))*dq[1]) - ((s1*(-l3*s23)*dq[2])) , ((s1*(l3*s23 + l2*s2))*dq[0]) - ((-c1*(l3*c23 + l2*c2))*dq[1]) - ((c1*(l3*c23)*dq[2])), ((l3*s23 * s1)*dq[0]) + ((l3*c23*c1)*dq[1]) + (-l3*c23*c1*dq[2])],
+
+          [(-s1*(l3*c23 + l2*c2)*dq[0]) + ((c1*(-l3*s23 - l2*s2))*dq[1]) + ((c1*(-l3*s23))*dq[2]), ((c1*(l3*s23 + l2*s2))*dq[0]) - ((s1*(l3*c23 + l2*c2))*dq[1]) - ((s1*(l3*c23))*dq[2]), ((-l3*s23*c1)*dq[0]) + ((-l3*c23*s1)*dq[1]) - (l3*c23*s1*dq[2])],
+
+          [0, ((-l3*s23 - l2*s2)*dq[1]) + ((-l3*s23)*dq[2]), ((-l3*s23)*dq[1])+(-l3*s23*dq[2])]]
 
 
 
@@ -407,11 +413,11 @@ def r2q( r, dr, ddr , manipulator ):
 
     for i in range(l):
 
-        q[0,i] = np.arctan(r[1,i]/r[2,i])
+        q[0,i] = np.arctan(r[1,i]/r[0,i])
 
-        q[2,i] = np.arccos(((xr[i]**2 + (r[2,i]-l1)**2) - (l2**2 + l3**2))/(2*l2*l3))
+        q[2,i] = -np.arccos(((xr[i]**2 + (r[2,i]-l1)**2) - (l2**2 + l3**2))/(2*l2*l3))
 
-        q[1,i] = np.arctan(r[2,i]/xr[i]) - np.arctan((l2*np.sin(q[2,i]))/(l1 + (l2*np.cos(q[2,i]))))
+        q[1,i] = np.arctan(r[2,i]/xr[i]) + np.arctan((l2*np.sin(q[2,i]))/(l1 + (l2*np.cos(q[2,i]))))
 
 
 

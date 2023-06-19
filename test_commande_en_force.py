@@ -28,7 +28,7 @@ clsys = ctl + sys
 clsys.x0 =  np.array([0,1.4,-1.3,0,0,0]) #
 
 # Simulation
-tf = 4
+tf = 5
 n = 100001
 clsys.compute_trajectory( tf, n, 'euler')
 clsys.plot_trajectory('x')
