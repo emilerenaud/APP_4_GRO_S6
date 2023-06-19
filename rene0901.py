@@ -179,7 +179,7 @@ class CustomPositionController( EndEffectorKinematicController ) :
         ##################################
         # Votre loi de commande ici !!!
         ##################################
-        
+
         # eq 8.23
         gain = 0.2
         dq = np.linalg.inv( J.T @ J + gain**2 * np.identity(self.m)) @ np.dot(J.T, e)
@@ -240,13 +240,15 @@ class CustomDrillingController( robotcontrollers.RobotController ) :
         g = self.robot_model.g( q )      # Gravity vector
         H = self.robot_model.H( q )      # Inertia matrix
         C = self.robot_model.C( q , dq ) # Coriolis matrix
+        d = self.robot_model.d( q , dq ) # Friction vector
+        
             
         ##################################
         # Votre loi de commande ici !!!
         ##################################
         
         u = np.zeros(self.m)  # place-holder de bonne dimension
-        
+        u = J.T @ f_e
         return u
         
     
@@ -287,7 +289,7 @@ def goal2r( r_0 , r_f , t_f ):
     #################################
     # Votre code ici !!!
     ##################################
-    
+    #eq 10.15
     
     return r, dr, ddr
 
@@ -324,8 +326,8 @@ def r2q( r, dr, ddr , manipulator ):
     #################################
     # Votre code ici !!!
     ##################################
-    
-    
+    #newton's method.
+    #p.61 à lire
     return q, dq, ddq
 
 
